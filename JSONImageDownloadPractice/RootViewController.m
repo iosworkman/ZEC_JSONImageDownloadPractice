@@ -71,42 +71,37 @@
     }
     
     if ([self getImageFromDatabase].count == 0) {
+        
         [NSURLConnection connectionWithRequest:request delegate:self];
+        dataSource  =[[NSMutableData alloc] init];
+        image =[UIImage imageNamed:@"photo"];
+        imageView = [[UIImageView alloc] initWithImage:image];
+        imageView.frame = CGRectMake(0, 20, self.view.frame.size.width,400);
+        [self.view addSubview:imageView];
+        
+        progressLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, imageView.frame.origin.y + imageView.frame.size.height + 30, 60, 40)];
+        progressLabel.center = CGPointMake(self.view.frame.size.width/2, imageView.frame.origin.y + imageView.frame.size.height + 30);
+        progressLabel.layer.borderWidth = 1;
+        progressLabel.textAlignment = NSTextAlignmentCenter;
+        [self.view addSubview: progressLabel];
+        
+        progressView =[[UIProgressView alloc] initWithProgressViewStyle:UIProgressViewStyleDefault];
+        progressView.frame = CGRectMake(0, 0, 240, 40);
+        progressView.center = CGPointMake(self.view.frame.size.width/2, progressLabel.frame.origin.y + progressLabel.frame.size.height + 50);
+        [self.view addSubview:progressView];
+        
+        activityIndicatorView =[[UIActivityIndicatorView alloc] initWithFrame:CGRectMake(0, 0, 40, 40)];
+        activityIndicatorView.activityIndicatorViewStyle = UIActivityIndicatorViewStyleGray;
+        activityIndicatorView.center = CGPointMake(imageView.frame.size.width/2, imageView.frame.size.height/2);
+        [self.view addSubview:activityIndicatorView];
+        [activityIndicatorView startAnimating];
+
     }
     else if (([self getImageFromDatabase].count != 0))
     {
         [self readImageData];
         NSLog(@"选择从数据库读取");
     }
-    
-
-    
-    
-    
-    
-    //  初始化缓存
-    dataSource  =[[NSMutableData alloc] init];
-    image =[UIImage imageNamed:@"photo"];
-    imageView = [[UIImageView alloc] initWithImage:image];
-    imageView.frame = CGRectMake(0, 20, self.view.frame.size.width,400);
-    [self.view addSubview:imageView];
-    
-    progressLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, imageView.frame.origin.y + imageView.frame.size.height + 30, 60, 40)];
-    progressLabel.center = CGPointMake(self.view.frame.size.width/2, imageView.frame.origin.y + imageView.frame.size.height + 30);
-    progressLabel.layer.borderWidth = 1;
-    progressLabel.textAlignment = NSTextAlignmentCenter;
-    [self.view addSubview: progressLabel];
-    
-    progressView =[[UIProgressView alloc] initWithProgressViewStyle:UIProgressViewStyleDefault];
-    progressView.frame = CGRectMake(0, 0, 240, 40);
-    progressView.center = CGPointMake(self.view.frame.size.width/2, progressLabel.frame.origin.y + progressLabel.frame.size.height + 50);
-    [self.view addSubview:progressView];
-    
-    activityIndicatorView =[[UIActivityIndicatorView alloc] initWithFrame:CGRectMake(0, 0, 40, 40)];
-    activityIndicatorView.activityIndicatorViewStyle = UIActivityIndicatorViewStyleGray;
-    activityIndicatorView.center = CGPointMake(imageView.frame.size.width/2, imageView.frame.size.height/2);
-    [self.view addSubview:activityIndicatorView];
-    [activityIndicatorView startAnimating];
 }
 
 
@@ -165,11 +160,13 @@
 {
     FMResultSet *sets = [database executeQuery:@"select * from Xman"];
     
-    
-        NSData *data = [sets dataForColumn:@"photo"];
-        imageView.image = [UIImage imageWithData:data];
-        
+    NSData *data = [sets dataForColumn:@"photo"];
 
+    imageView = [[UIImageView alloc] init];
+    imageView.image = [UIImage imageWithData:data];
+    imageView.frame = CGRectMake(0, 20, self.view.frame.size.width,400);
+    [self.view addSubview:imageView];
+    
     NSLog(@"照片是从数据库读出来的");
 
 }
