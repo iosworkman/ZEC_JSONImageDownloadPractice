@@ -9,6 +9,7 @@
 #define IMAGEURL @"http://img3.douban.com/view/photo/raw/public/p2180078704.jpg"
 
 #import "RootViewController.h"
+#import "FMDatabase.h"
 
 
 @interface RootViewController ()<NSURLConnectionDataDelegate,NSURLConnectionDelegate>
@@ -24,6 +25,9 @@
     UIProgressView *progressView;
     UILabel *progressLabel;
     UIActivityIndicatorView *activityIndicatorView;
+    FMDatabase *database;
+    BOOL _isInsertImageDataOK;
+    BOOL _isCreatePhotoTableOK;
 }
 
 @end
@@ -39,6 +43,8 @@
     return self;
 }
 
+//将数据归档到本地
+
 - (void)viewDidLoad
 {
     [super viewDidLoad];
@@ -49,7 +55,34 @@
     //  初始化NSURLRequest对象
     request = [[NSURLRequest alloc] initWithURL:url];
     //  启动请求
-    [NSURLConnection connectionWithRequest:request delegate:self];
+    
+    database = [FMDatabase databaseWithPath:[self getDatabasePath]];
+    
+    
+    
+    
+    if ([database open]) {
+        NSLog(@"数据库打开成功");
+        
+    }
+    else
+    {
+        NSLog(@"数据库打开失败");
+    }
+    
+    if ([self getImageFromDatabase].count == 0) {
+        [NSURLConnection connectionWithRequest:request delegate:self];
+    }
+    else if (([self getImageFromDatabase].count != 0))
+    {
+        [self readImageData];
+        NSLog(@"选择从数据库读取");
+    }
+    
+
+    
+    
+    
     
     //  初始化缓存
     dataSource  =[[NSMutableData alloc] init];
@@ -74,9 +107,71 @@
     activityIndicatorView.center = CGPointMake(imageView.frame.size.width/2, imageView.frame.size.height/2);
     [self.view addSubview:activityIndicatorView];
     [activityIndicatorView startAnimating];
+}
+
+
+- (NSString *)getDatabasePath
+{
+    //获取document路径
+    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    
+    NSString *path = [paths objectAtIndex:0];
     
     
+    NSLog(@"%@",path);
     
+    //返回数据库保存的路径，数据库文件名字后缀.db
+    return [path stringByAppendingPathComponent:@"JSONImageDownloadPractice.db"];
+}
+
+- (NSMutableArray *)getImageFromDatabase
+{
+    NSMutableArray *imageArray = [[NSMutableArray alloc] init];
+    
+    FMResultSet *results = [database executeQuery:@"select * from Xman"];
+    
+    //遍历
+    while (results.next)
+    {
+        
+        NSData *data = [results dataForColumn:@"photo"];
+        
+        [imageArray addObject:data];
+    }
+    
+    return imageArray;
+}
+
+
+-(void)createPhotoTable
+{
+
+
+    _isCreatePhotoTableOK = [database executeUpdate:@"create table if not exists Xman (id integer primary key autoincrement,photo blob)"];
+
+    _isInsertImageDataOK = [database executeUpdate:@"insert into Xman (photo) values (?)",dataSource];
+    
+    if (_isInsertImageDataOK) {
+        NSLog(@"图片插入到数据库");
+    }
+
+//    _isInsertImageDataOK = YES;
+    NSLog(@"ssssssssssssssssssss");
+    [database close];
+
+}
+
+-(void)readImageData
+{
+    FMResultSet *sets = [database executeQuery:@"select * from Xman"];
+    
+    
+        NSData *data = [sets dataForColumn:@"photo"];
+        imageView.image = [UIImage imageWithData:data];
+        
+
+    NSLog(@"照片是从数据库读出来的");
+
 }
 
 #pragma mark - NSURLConnection代理
@@ -88,7 +183,7 @@
 }
 -(void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data
 {
-    NSLog(@"正在接收数据");
+//    NSLog(@"正在接收数据");
     [dataSource appendData:data];
     CGFloat progressNumber =  (CGFloat)dataSource.length / dataLength;
 //    NSLog(@"progressNumber = %.0f",progressNumber);
@@ -99,7 +194,11 @@
 {
     [activityIndicatorView stopAnimating];
     NSLog(@"下载完成");
+//    NSLog(@"database %@",dataSource);
     imageView.image = [UIImage imageWithData:dataSource];
+    
+    [self createPhotoTable];
+    
 }
 
 -(void)connection:(NSURLConnection *)connection didFailWithError:(NSError *)error
